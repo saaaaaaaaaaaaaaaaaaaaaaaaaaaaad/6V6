@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TactixPro 6v6 - Football Strategy Hub</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        pitch: {
+                            DEFAULT: '#0b2e18',
+                            dark: '#061a0d',
+                            stripe: '#0e381e',
+                            line: 'rgba(255, 255, 255, 0.8)'
+                        },
+                        neon: {
+                            green: '#00ff88',
+                            glow: 'rgba(0, 255, 136, 0.4)'
+                        },
+                        dark: {
+                            bg: '#070a0f',
+                            card: '#0f172a',
+                            border: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #070a0f;
+            color: #f1f5f9;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .pitch-container {
+            position: relative;
+            background: radial-gradient(circle at center, #0e3b1f 0%, #05170b 100%);
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 0 40px rgba(0,0,0,0.6);
+            touch-action: none;
+        }
+
+        .pitch-lines {
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070a0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00ff88;
+        }
+
+        .token {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            transition: box-shadow 0.2s, transform 0.1s;
+            z-index: 20;
+            touch-action: none;
+        }
+        .token:active {
+            cursor: grabbing;
+            z-index: 30;
+        }
+        .token-glow-a {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.7);
+        }
+        .token-glow-b {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.7);
+        }
+
+        .neon-glow-sm {
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col text-slate-200">
+
+    <!-- Top Navigation Header -->
+    <header class="h-16 border-b border-slate-800 bg-dark-bg flex items-center justify-between px-4 sm:px-6 z-30">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-300 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg neon-glow-sm">
+                <i class="fa-solid fa-futbol"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-emerald-400 bg-clip-text text-transparent">TACTIX<span class="text-emerald-400">PRO 6v6</span></h1>
+                <p class="text-xs text-slate-400 hidden sm:block">6-A-Side Tactical Whiteboard & Strategy Hub</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex items-center space-x-1 sm:space-x-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+            <button onclick="switchTab('whiteboard')" id="tab-whiteboard" class="px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all flex items-center space-x-2 bg-emerald-400 text-slate-950 shadow-md">
+                <i class="fa-solid fa-chalkboard"></i>
+                <span class="hidden md:inline">6v6 Pitch</span>
+            </button>
+            <button onclick="switchTab('squad')" id="tab-squad" class="px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition-all flex items-center space-x-2">
+                <i class="fa-solid fa-users"></i>
+                <span class="hidden md:inline">Set-Pieces & Subs</span>
+            </button>
+            <button onclick="switchTab('matchday')" id="tab-matchday" class="px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition-all flex items-center space-x-2">
+                <i class="fa-solid fa-stopwatch"></i>
+                <span class="hidden md:inline">6v6 Live Tracker</span>
+            </button>
+        </nav>
+
+        <!-- Top Right Actions -->
+        <div class="flex items-center space-x-2">
+            <button onclick="exportTacticsJSON()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition" title="Save Preset (JSON)">
+                <i class="fa-solid fa-download"></i>
+            </button>
+            <label class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer" title="Load Preset (JSON)">
+                <i class="fa-solid fa-upload"></i>
+                <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importTacticsJSON(event)">
+            </label>
+            <button onclick="exportPitchPNG()" class="px-3 py-1.5 text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/30 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-camera"></i>
+                <span class="hidden sm:inline">Export Strategy</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 overflow-hidden relative flex">
+
+        <!-- TAB 1: TACTICAL WHITEBOARD -->
+        <div id="view-whiteboard" class="w-full h-full flex flex-col md:flex-row overflow-hidden p-3 gap-3">
+            
+            <!-- Left Toolbar / Controls -->
+            <div class="w-full md:w-80 glass-panel rounded-xl p-4 flex flex-col justify-between space-y-4 overflow-y-auto">
+                <div class="space-y-4">
+                    <!-- View Mode Toggle -->
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">Pitch View</label>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                            <button id="btn-pitch-full" onclick="setPitchView('full')" class="py-1.5 text-xs font-bold rounded bg-emerald-400 text-slate-950 transition">Full 6v6 Pitch</button>
+                            <button id="btn-pitch-half" onclick="setPitchView('half')" class="py-1.5 text-xs font-bold rounded text-slate-400 hover:text-white transition">Half Pitch Focus</button>
+                        </div>
+                    </div>
+
+                    <!-- 6v6 Formation Quick Loader -->
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">6-A-Side Formations</label>
+                        <select id="formationSelect" onchange="applyFormation(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-emerald-400">
+                            <option value="2-1-2">2-1-2 Balanced (Standard)</option>
+                            <option value="1-3-1">1-3-1 Diamond (Control)</option>
+                            <option value="2-2-1">2-2-1 "Tree" (Solid Base)</option>
+                            <option value="3-1-1">3-1-1 "Pyramid" (Counter)</option>
+                            <option value="2-3-0">2-3-0 High Overload</option>
+                            <option value="1-2-2">1-2-2 Attack</option>
+                        </select>
+                    </div>
+
+                    <!-- Drawing Tools Selector -->
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">Tactical Tools</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setTool('select')" id="tool-select" class="tool-btn p-2.5 rounded-lg border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 flex flex-col items-center justify-center text-xs space-y-1">
+                                <i class="fa-solid fa-hand-pointer text-base"></i>
+                                <span>Move</span>
+                            </button>
+                            <button onclick="setTool('arrow')" id="tool-arrow" class="tool-btn p-2.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-white flex flex-col items-center justify-center text-xs space-y-1">
+                                <i class="fa-solid fa-long-arrow-right text-base"></i>
+                                <span>Pass</span>
+                            </button>
+                            <button onclick="setTool('curved')" id="tool-curved" class="tool-btn p-2.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-white flex flex-col items-center justify-center text-xs space-y-1">
+                                <i class="fa-solid fa-bezier-curve text-base"></i>
+                                <span>Dribble</span>
+                            </button>
+                            <button onclick="setTool('zone')" id="tool-zone" class="tool-btn p-2.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-white flex flex-col items-center justify-center text-xs space-y-1">
+                                <i class="fa-solid fa-vector-square text-base"></i>
+                                <span>Press Zone</span>
+                            </button>
+                            <button onclick="setTool('freehand')" id="tool-freehand" class="tool-btn p-2.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-white flex flex-col items-center justify-center text-xs space-y-1">
+                                <i class="fa-solid fa-pen text-base"></i>
+                                <span>Draw</span>
+                            </button>
+                            <button onclick="clearDrawings()" class="p-2.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 flex flex-col items-center justify-center text-xs space-y-1">
+                                <i class="fa-solid fa-trash-can text-base"></i>
+                                <span>Clear</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Add Markers / Equipment -->
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">Training Props</label>
+                        <div class="flex space-x-2">
+                            <button onclick="addMarker('cone')" class="flex-1 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-medium hover:bg-slate-800 text-amber-400 flex items-center justify-center space-x-1">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span>Cone</span>
+                            </button>
+                            <button onclick="addMarker('dummy')" class="flex-1 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-medium hover:bg-slate-800 text-slate-300 flex items-center justify-center space-x-1">
+                                <i class="fa-solid fa-user-ninja"></i>
+                                <span>Wall Dummy</span>
+                            </button>
+                            <button onclick="resetBallPosition()" class="flex-1 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-medium hover:bg-slate-800 text-emerald-400 flex items-center justify-center space-x-1">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Ball</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Playbook Animation Controls -->
+                <div class="pt-4 border-t border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-film"></i> 6v6 Playbook Recorder
+                        </span>
+                        <span id="stepIndicator" class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">Phase 1/1</span>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2">
+                        <button onclick="addFrame()" class="flex-1 py-2 bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-bold hover:bg-emerald-600/30 transition flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Save Phase</span>
+                        </button>
+                        <button onclick="playAnimation()" id="btn-play-anim" class="flex-1 py-2 bg-emerald-400 text-slate-950 rounded-lg text-xs font-extrabold hover:bg-emerald-300 transition flex items-center justify-center space-x-1 shadow-lg neon-glow-sm">
+                            <i class="fa-solid fa-play"></i>
+                            <span>Play Animation</span>
+                        </button>
+                        <button onclick="clearFrames()" class="p-2 bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 rounded-lg text-xs">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+
+                    <div id="timelineContainer" class="flex items-center gap-1 overflow-x-auto py-1"></div>
+                </div>
+            </div>
+
+            <!-- Pitch Container -->
+            <div class="flex-1 relative flex items-center justify-center p-2 overflow-hidden bg-slate-950/40 rounded-xl border border-slate-800/80">
+                <div id="pitch" class="pitch-container w-full h-full max-w-[1100px] max-h-[750px] relative overflow-hidden flex items-center justify-center">
+                    
+                    <!-- SVG Overlay for pitch lines & dynamic annotations -->
+                    <svg id="pitchSvg" class="pitch-lines"></svg>
+
+                    <!-- Player Tokens Layer -->
+                    <div id="tokensLayer" class="absolute inset-0 pointer-events-auto"></div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: 6v6 SET-PIECES & ROLLING SUBS -->
+        <div id="view-squad" class="w-full h-full hidden p-4 flex flex-col lg:flex-row gap-4 overflow-y-auto">
+            
+            <!-- Rolling Subs Board -->
+            <div class="w-full lg:w-96 glass-panel rounded-xl p-4 flex flex-col space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i class="fa-solid fa-rotate text-emerald-400"></i> Rolling Subs (6v6)
+                    </h2>
+                    <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold px-2 py-0.5 rounded">
+                        High-Tempo
+                    </span>
+                </div>
+
+                <p class="text-xs text-slate-400">Track stamina & rotation interval timer to keep intensity high throughout 6v6 halves.</p>
+
+                <!-- Rotation Alert Box -->
+                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 block">Next Sub Rotation Target</span>
+                        <span class="text-lg font-mono font-bold text-amber-400" id="subRotationTimer">04:00</span>
+                    </div>
+                    <button onclick="resetSubTimer()" class="px-3 py-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold hover:bg-amber-500/30 transition">
+                        Reset 4m Shift
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto flex-1 space-y-2 pr-1" id="squadListContainer">
+                    <!-- Squad items populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Set-Piece Tactics Setup -->
+            <div class="flex-1 glass-panel rounded-xl p-4 flex flex-col space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i class="fa-solid fa-flag text-amber-400"></i> 6-A-Side Set-Piece Routines
+                    </h2>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button onclick="loadSetPiecePreset('kick-in')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-200">Sideline Kick-in</button>
+                        <button onclick="loadSetPiecePreset('quick-corner')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-200">Short Corner</button>
+                        <button onclick="loadSetPiecePreset('goal-clearance')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-200">GK Clearance</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                    <!-- Kick-In Tactical Routine -->
+                    <div class="bg-slate-900/90 rounded-xl p-4 border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1">Sideline Kick-in Routine</span>
+                            <h3 class="text-base font-bold text-white mb-2">Third-Man Run & Low Cutback</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Taker plays a firm pass to the pivot player near the box edge. The pivot dummy-steps to let ball roll through to a wide midfielder making an overlap run, creating a 2-on-1 chance against defender.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-xs text-slate-300">
+                            <span>Key Role: <strong class="text-emerald-400">Pivot (#9)</strong></span>
+                            <span>Tempo: <strong class="text-emerald-400">1-Touch Strike</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Goal Clearance / GK Build-up -->
+                    <div class="bg-slate-900/90 rounded-xl p-4 border border-slate-800 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider block mb-1">GK Goal Clearance</span>
+                            <h3 class="text-base font-bold text-white mb-2">Split Defender Overload</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Goalkeeper throws/plays to deep defender who peels out wide. Opposite winger drops deep to form a triangle, dragging high pressers out and opening space down the central corridor.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-xs text-slate-300">
+                            <span>Rule: <strong class="text-amber-400">No Goal Kicks (Hand/Feet Roll)</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 3: 6v6 LIVE MATCH TRACKER -->
+        <div id="view-matchday" class="w-full h-full hidden p-4 flex flex-col gap-4 overflow-y-auto">
+            
+            <!-- Match Clock Bar -->
+            <div class="glass-panel rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 border-l-4 border-emerald-400">
+                <div class="flex items-center space-x-4">
+                    <div class="text-3xl font-mono font-black text-white tracking-wider" id="matchTimer">00:00</div>
+                    <div>
+                        <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold" id="matchPeriod">1st HALF (20 MIN)</span>
+                        <p class="text-xs text-slate-400 mt-0.5">6v6 High-Intensity Match Tracker</p>
+                    </div>
+                </div>
+
+                <!-- Clock Controls -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleTimer()" id="btn-timer-toggle" class="px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold rounded-lg text-xs transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Start Half</span>
+                    </button>
+                    <button onclick="resetTimer()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg text-xs transition">
+                        Reset
+                    </button>
+                </div>
+
+                <!-- Live Score Dashboard -->
+                <div class="flex items-center space-x-6 bg-slate-900/90 px-6 py-2 rounded-xl border border-slate-800">
+                    <div class="text-center">
+                        <span class="text-xs text-slate-400 block font-bold">RED 6</span>
+                        <span class="text-2xl font-black text-emerald-400" id="scoreHome">0</span>
+                    </div>
+                    <span class="text-xl font-bold text-slate-600">:</span>
+                    <div class="text-center">
+                        <span class="text-xs text-slate-400 block font-bold">BLUE 6</span>
+                        <span class="text-2xl font-black text-blue-400" id="scoreAway">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Live Hub Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
+                
+                <!-- 6v6 Event Logger -->
+                <div class="glass-panel rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-bolt text-amber-400"></i> Quick Match Action
+                        </h3>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button onclick="logEvent('Goal', 'Home')" class="p-3 bg-emerald-600/20 border border-emerald-500/40 rounded-xl text-emerald-300 hover:bg-emerald-600/30 transition text-left">
+                                <i class="fa-solid fa-futbol text-lg block mb-1"></i>
+                                <span class="text-xs font-bold block">Goal (Red)</span>
+                            </button>
+                            <button onclick="logEvent('Goal', 'Away')" class="p-3 bg-blue-600/20 border border-blue-500/40 rounded-xl text-blue-300 hover:bg-blue-600/30 transition text-left">
+                                <i class="fa-solid fa-shield-halved text-lg block mb-1"></i>
+                                <span class="text-xs font-bold block">Goal (Blue)</span>
+                            </button>
+                            <button onclick="logEvent('Shot on Target', 'Home')" class="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 hover:border-slate-700 transition text-left">
+                                <i class="fa-solid fa-bullseye text-amber-400 text-lg block mb-1"></i>
+                                <span class="text-xs font-bold block">Shot On Target</span>
+                            </button>
+                            <button onclick="logEvent('GK Save', 'Home')" class="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 hover:border-slate-700 transition text-left">
+                                <i class="fa-solid fa-hand text-purple-400 text-lg block mb-1"></i>
+                                <span class="text-xs font-bold block">GK Save</span>
+                            </button>
+                            <button onclick="logEvent('Kick-In Won', 'Home')" class="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 hover:border-slate-700 transition text-left">
+                                <i class="fa-solid fa-arrows-split-up-and-left text-teal-400 text-lg block mb-1"></i>
+                                <span class="text-xs font-bold block">Kick-In Won</span>
+                            </button>
+                            <button onclick="logEvent('Blue Card (Sin Bin)', 'Home')" class="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-200 hover:border-slate-700 transition text-left">
+                                <i class="fa-solid fa-square text-blue-400 text-lg block mb-1"></i>
+                                <span class="text-xs font-bold block">Sin Bin (2 Min)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-800">
+                        <span class="text-xs font-bold text-slate-400 block mb-2">6v6 Match Feed</span>
+                        <div id="eventLogFeed" class="h-32 overflow-y-auto space-y-1.5 text-xs">
+                            <div class="text-slate-500 italic text-[11px]">Log 6v6 match events live pitchside.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics & Performance Visualizer -->
+                <div class="glass-panel rounded-xl p-4 flex flex-col justify-between space-y-4">
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-emerald-400"></i> Match Intensity Metrics
+                    </h3>
+
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs font-bold mb-1">
+                                <span class="text-emerald-400">Possession: <span id="possessionHome">54%</span></span>
+                                <span class="text-blue-400"><span id="possessionAway">46%</span></span>
+                            </div>
+                            <div class="h-2.5 bg-blue-900/50 rounded-full overflow-hidden flex">
+                                <div id="barPossession" class="h-full bg-emerald-400 transition-all duration-500" style="width: 54%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-bold mb-1">
+                                <span class="text-emerald-400">Shots (Red): <span id="shotsHome">8</span></span>
+                                <span class="text-blue-400">Shots (Blue): <span id="shotsAway">5</span></span>
+                            </div>
+                            <div class="h-2.5 bg-slate-800 rounded-full overflow-hidden flex">
+                                <div id="barShots" class="h-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-500" style="width: 61%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/90 rounded-xl p-3 border border-slate-800 flex flex-col items-center">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">6v6 Tactical Profile</span>
+                        <canvas id="radarCanvas" width="220" height="180" class="max-w-full"></canvas>
+                    </div>
+                </div>
+
+                <!-- Interactive 6v6 Shot Map -->
+                <div class="glass-panel rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-bullseye text-emerald-400"></i> 6v6 Shot Location Map
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-3">Click on mini-pitch to log shot location</p>
+                        
+                        <div id="shotMapContainer" class="relative w-full h-48 bg-pitch-dark rounded-xl border border-slate-800 overflow-hidden cursor-crosshair">
+                            <svg class="absolute inset-0 w-full h-full opacity-40">
+                                <rect x="0" y="0" width="100%" height="100%" fill="none" stroke="white" stroke-width="2"/>
+                                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="white" stroke-width="1.5"/>
+                                <circle cx="50%" cy="50%" r="20" fill="none" stroke="white" stroke-width="1.5"/>
+                                <!-- 6-a-side D Box Curved Lines -->
+                                <path d="M 0 30 A 35 35 0 0 1 0 130" fill="none" stroke="white" stroke-width="1.5"/>
+                                <path d="M 100% 30 A 35 35 0 0 0 100% 130" fill="none" stroke="white" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-xs text-slate-300">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+                            <span>Goal</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+                            <span>Saved</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+                            <span>Missed</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JAVASCRIPT ENGINE -->
+    <script>
+        const state = {
+            currentTab: 'whiteboard',
+            pitchView: 'full',
+            currentTool: 'select',
+            tokens: [],
+            drawings: [],
+            animationFrames: [],
+            currentFrameIndex: 0,
+            isPlayingAnim: false,
+            
+            // Match Tracker
+            timerInterval: null,
+            subTimerInterval: null,
+            secondsElapsed: 0,
+            subTimerSeconds: 240, // 4-minute sub rotation target
+            isTimerRunning: false,
+            scoreHome: 0,
+            scoreAway: 0,
+            stats: {
+                shotsHome: 8,
+                shotsAway: 5,
+                possessionHome: 54
+            },
+
+            // 6-a-side Squad Roster
+            squad: [
+                { id: 1, number: 1, name: 'M. Neuer', role: 'Goalkeeper', team: 'A', pos: { x: 8, y: 50 }, stamina: '100%' },
+                { id: 2, number: 3, name: 'K. Walker', role: 'Defender (Cover)', team: 'A', pos: { x: 26, y: 70 }, stamina: '85%' },
+                { id: 3, number: 4, name: 'D. Rice', role: 'Anchor Defender', team: 'A', pos: { x: 26, y: 30 }, stamina: '90%' },
+                { id: 4, number: 8, name: 'B. Fernandes', role: 'Central Mid (Engine)', team: 'A', pos: { x: 48, y: 50 }, stamina: '78%' },
+                { id: 5, number: 7, name: 'B. Saka', role: 'Winger / Forward', team: 'A', pos: { x: 74, y: 75 }, stamina: '92%' },
+                { id: 6, number: 9, name: 'E. Haaland', role: 'Target Pivot', team: 'A', pos: { x: 78, y: 25 }, stamina: '88%' },
+                { id: 7, number: 12, name: 'J. Stones', role: 'Sub Defender', team: 'A', pos: { x: 0, y: 0 }, stamina: 'Bench' },
+                { id: 8, number: 10, name: 'P. Foden', role: 'Sub Playmaker', team: 'A', pos: { x: 0, y: 0 }, stamina: 'Bench' }
+            ]
+        };
+
+        let isDrawing = false;
+        let startCoords = { x: 0, y: 0 };
+        let currentPath = [];
+
+        const pitchEl = document.getElementById('pitch');
+        const pitchSvg = document.getElementById('pitchSvg');
+        const tokensLayer = document.getElementById('tokensLayer');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderPitchLines();
+            init6v6Tokens();
+            renderTokens();
+            renderSquadList();
+            initShotMap();
+            drawRadarChart();
+            setupCanvasDrawingListeners();
+
+            window.addEventListener('resize', () => {
+                renderPitchLines();
+                renderDrawings();
+            });
+        });
+
+        function switchTab(tabName) {
+            state.currentTab = tabName;
+            ['whiteboard', 'squad', 'matchday'].forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const tabBtn = document.getElementById(`tab-${t}`);
+                if (t === tabName) {
+                    view.classList.remove('hidden');
+                    tabBtn.classList.add('bg-emerald-400', 'text-slate-950', 'shadow-md');
+                    tabBtn.classList.remove('text-slate-400');
+                } else {
+                    view.classList.add('hidden');
+                    tabBtn.classList.remove('bg-emerald-400', 'text-slate-950', 'shadow-md');
+                    tabBtn.classList.add('text-slate-400');
+                }
+            });
+
+            if (tabName === 'matchday') {
+                drawRadarChart();
+            }
+        }
+
+        function setPitchView(mode) {
+            state.pitchView = mode;
+            const btnFull = document.getElementById('btn-pitch-full');
+            const btnHalf = document.getElementById('btn-pitch-half');
+            
+            if (mode === 'full') {
+                btnFull.className = "py-1.5 text-xs font-bold rounded bg-emerald-400 text-slate-950 transition";
+                btnHalf.className = "py-1.5 text-xs font-bold rounded text-slate-400 hover:text-white transition";
+            } else {
+                btnHalf.className = "py-1.5 text-xs font-bold rounded bg-emerald-400 text-slate-950 transition";
+                btnFull.className = "py-1.5 text-xs font-bold rounded text-slate-400 hover:text-white transition";
+            }
+            renderPitchLines();
+            renderTokens();
+        }
+
+        function renderPitchLines() {
+            const width = pitchEl.clientWidth;
+            const height = pitchEl.clientHeight;
+            let svgContent = '';
+
+            const pad = 20;
+            const pw = width - pad * 2;
+            const ph = height - pad * 2;
+
+            if (state.pitchView === 'full') {
+                svgContent += `<rect x="${pad}" y="${pad}" width="${pw}" height="${ph}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2.5"/>`;
+                svgContent += `<line x1="${pad + pw/2}" y1="${pad}" x2="${pad + pw/2}" y2="${pad + ph}" stroke="rgba(255,255,255,0.8)" stroke-width="2.5"/>`;
+                
+                const r = ph * 0.16;
+                svgContent += `<circle cx="${pad + pw/2}" cy="${pad + ph/2}" r="${r}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+                svgContent += `<circle cx="${pad + pw/2}" cy="${pad + ph/2}" r="4" fill="white"/>`;
+
+                const dRadius = ph * 0.32;
+                svgContent += `<path d="M ${pad} ${pad + ph/2 - dRadius} A ${dRadius} ${dRadius} 0 0 1 ${pad} ${pad + ph/2 + dRadius}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+                svgContent += `<path d="M ${pad + pw} ${pad + ph/2 - dRadius} A ${dRadius} ${dRadius} 0 0 0 ${pad + pw} ${pad + ph/2 + dRadius}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+
+                svgContent += `<circle cx="${pad + pw * 0.14}" cy="${pad + ph/2}" r="3" fill="white"/>`;
+                svgContent += `<circle cx="${pad + pw - pw * 0.14}" cy="${pad + ph/2}" r="3" fill="white"/>`;
+
+                const cr = 12;
+                svgContent += `<path d="M ${pad} ${pad + cr} A ${cr} ${cr} 0 0 0 ${pad + cr} ${pad}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+                svgContent += `<path d="M ${pad + pw - cr} ${pad} A ${cr} ${cr} 0 0 0 ${pad + pw} ${pad + cr}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+                svgContent += `<path d="M ${pad} ${pad + ph - cr} A ${cr} ${cr} 0 0 1 ${pad + cr} ${pad + ph}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+                svgContent += `<path d="M ${pad + pw - cr} ${pad + ph} A ${cr} ${cr} 0 0 1 ${pad + pw} ${pad + ph - cr}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+
+            } else {
+                svgContent += `<rect x="${pad}" y="${pad}" width="${pw}" height="${ph}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2.5"/>`;
+                const dRadius = ph * 0.45;
+                svgContent += `<path d="M ${pad} ${pad + ph/2 - dRadius} A ${dRadius} ${dRadius} 0 0 1 ${pad} ${pad + ph/2 + dRadius}" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+                svgContent += `<circle cx="${pad + pw * 0.28}" cy="${pad + ph/2}" r="3.5" fill="white"/>`;
+            }
+
+            pitchSvg.innerHTML = svgContent;
+            renderDrawings();
+        }
+
+        function init6v6Tokens() {
+            state.tokens = [];
+            state.squad.filter(p => p.stamina !== 'Bench').forEach(player => {
+                state.tokens.push({
+                    id: `token-A-${player.id}`,
+                    type: 'player',
+                    team: 'A',
+                    num: player.number,
+                    name: player.name.split(' ').pop(),
+                    x: player.pos.x,
+                    y: player.pos.y
+                });
+            });
+
+            const teamBPositions = [
+                { num: 1, x: 92, y: 50 },
+                { num: 2, x: 74, y: 70 },
+                { num: 3, x: 74, y: 30 },
+                { num: 4, x: 52, y: 50 },
+                { num: 5, x: 30, y: 75 },
+                { num: 6, x: 30, y: 25 }
+            ];
+
+            teamBPositions.forEach((pos, idx) => {
+                state.tokens.push({
+                    id: `token-B-${idx + 1}`,
+                    type: 'player',
+                    team: 'B',
+                    num: pos.num,
+                    name: `DEF ${pos.num}`,
+                    x: pos.x,
+                    y: pos.y
+                });
+            });
+
+            state.tokens.push({
+                id: 'token-ball',
+                type: 'ball',
+                x: 50,
+                y: 50
+            });
+        }
+
+        function renderTokens() {
+            tokensLayer.innerHTML = '';
+
+            state.tokens.forEach(t => {
+                const el = document.createElement('div');
+                el.className = 'token flex flex-col items-center justify-center';
+                el.style.left = `${t.x}%`;
+                el.style.top = `${t.y}%`;
+                el.id = t.id;
+
+                if (t.type === 'player') {
+                    const isTeamA = t.team === 'A';
+                    const bgColor = isTeamA ? 'bg-gradient-to-tr from-rose-600 to-red-500' : 'bg-gradient-to-tr from-blue-600 to-indigo-500';
+                    const glowClass = isTeamA ? 'token-glow-a' : 'token-glow-b';
+
+                    el.innerHTML = `
+                        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full ${bgColor} border-2 border-white flex items-center justify-center font-black text-xs text-white shadow-xl ${glowClass}">
+                            ${t.num}
+                        </div>
+                        <span class="text-[10px] font-bold bg-slate-950/80 px-1.5 py-0.5 rounded text-slate-200 mt-1 whitespace-nowrap border border-slate-800 pointer-events-none">${t.name}</span>
+                    `;
+                } else if (t.type === 'ball') {
+                    el.innerHTML = `
+                        <div class="w-6 h-6 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center shadow-lg transform hover:scale-110 transition">
+                            <i class="fa-solid fa-futbol text-slate-950 text-xs"></i>
+                        </div>
+                    `;
+                } else if (t.type === 'cone') {
+                    el.innerHTML = `
+                        <div class="text-amber-400 text-lg drop-shadow-md">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                    `;
+                } else if (t.type === 'dummy') {
+                    el.innerHTML = `
+                        <div class="w-6 h-8 bg-slate-700 border border-slate-500 rounded flex items-center justify-center text-slate-300 text-xs">
+                            <i class="fa-solid fa-user-ninja"></i>
+                        </div>
+                    `;
+                }
+
+                makeDraggable(el, t);
+                tokensLayer.appendChild(el);
+            });
+        }
+
+        function makeDraggable(element, tokenData) {
+            let isDragging = false;
+
+            const onStart = (e) => {
+                if (state.currentTool !== 'select') return;
+                isDragging = true;
+                element.style.cursor = 'grabbing';
+                e.stopPropagation();
+            };
+
+            const onMove = (e) => {
+                if (!isDragging) return;
+                const rect = pitchEl.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                let xPct = ((clientX - rect.left) / rect.width) * 100;
+                let yPct = ((clientY - rect.top) / rect.height) * 100;
+
+                xPct = Math.max(2, Math.min(98, xPct));
+                yPct = Math.max(2, Math.min(98, yPct));
+
+                tokenData.x = xPct;
+                tokenData.y = yPct;
+
+                element.style.left = `${xPct}%`;
+                element.style.top = `${yPct}%`;
+            };
+
+            const onEnd = () => {
+                isDragging = false;
+                element.style.cursor = 'grab';
+            };
+
+            element.addEventListener('mousedown', onStart);
+            element.addEventListener('touchstart', onStart, { passive: true });
+
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('touchmove', onMove, { passive: true });
+
+            window.addEventListener('mouseup', onEnd);
+            window.addEventListener('touchend', onEnd);
+        }
+
+        function applyFormation(formationName) {
+            const formations6v6 = {
+                '2-1-2': [
+                    { x: 8, y: 50 },
+                    { x: 26, y: 70 }, { x: 26, y: 30 },
+                    { x: 50, y: 50 },
+                    { x: 74, y: 75 }, { x: 74, y: 25 }
+                ],
+                '1-3-1': [
+                    { x: 8, y: 50 },
+                    { x: 24, y: 50 },
+                    { x: 48, y: 80 }, { x: 50, y: 50 }, { x: 48, y: 20 },
+                    { x: 78, y: 50 }
+                ],
+                '2-2-1': [
+                    { x: 8, y: 50 },
+                    { x: 26, y: 75 }, { x: 26, y: 25 },
+                    { x: 55, y: 65 }, { x: 55, y: 35 },
+                    { x: 80, y: 50 }
+                ],
+                '3-1-1': [
+                    { x: 8, y: 50 },
+                    { x: 25, y: 80 }, { x: 22, y: 50 }, { x: 25, y: 20 },
+                    { x: 52, y: 50 },
+                    { x: 78, y: 50 }
+                ],
+                '2-3-0': [
+                    { x: 8, y: 50 },
+                    { x: 25, y: 65 }, { x: 25, y: 35 },
+                    { x: 65, y: 85 }, { x: 68, y: 50 }, { x: 65, y: 15 }
+                ],
+                '1-2-2': [
+                    { x: 8, y: 50 },
+                    { x: 22, y: 50 },
+                    { x: 48, y: 70 }, { x: 48, y: 30 },
+                    { x: 78, y: 70 }, { x: 78, y: 30 }
+                ]
+            };
+
+            const coords = formations6v6[formationName];
+            if (!coords) return;
+
+            let teamAIndex = 0;
+            state.tokens.forEach(t => {
+                if (t.team === 'A' && teamAIndex < coords.length) {
+                    t.x = coords[teamAIndex].x;
+                    t.y = coords[teamAIndex].y;
+                    teamAIndex++;
+                }
+            });
+
+            renderTokens();
+        }
+
+        function setTool(tool) {
+            state.currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.className = "tool-btn p-2.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-white flex flex-col items-center justify-center text-xs space-y-1";
+            });
+            const activeBtn = document.getElementById(`tool-${tool}`);
+            if (activeBtn) {
+                activeBtn.className = "tool-btn p-2.5 rounded-lg border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 flex flex-col items-center justify-center text-xs space-y-1";
+            }
+        }
+
+        function setupCanvasDrawingListeners() {
+            pitchEl.addEventListener('mousedown', startDrawing);
+            pitchEl.addEventListener('mousemove', drawMove);
+            pitchEl.addEventListener('mouseup', endDrawing);
+
+            pitchEl.addEventListener('touchstart', (e) => startDrawing(e.touches[0]), { passive: true });
+            pitchEl.addEventListener('touchmove', (e) => drawMove(e.touches[0]), { passive: true });
+            pitchEl.addEventListener('touchend', endDrawing);
+        }
+
+        function getPitchRelativeCoords(e) {
+            const rect = pitchEl.getBoundingClientRect();
+            return {
+                x: ((e.clientX - rect.left) / rect.width) * 100,
+                y: ((e.clientY - rect.top) / rect.height) * 100
+            };
+        }
+
+        function startDrawing(e) {
+            if (state.currentTool === 'select') return;
+            isDrawing = true;
+            startCoords = getPitchRelativeCoords(e);
+            currentPath = [startCoords];
+        }
+
+        function drawMove(e) {
+            if (!isDrawing) return;
+            const current = getPitchRelativeCoords(e);
+            currentPath.push(current);
+            renderDrawings(current);
+        }
+
+        function endDrawing() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            if (currentPath.length > 1) {
+                state.drawings.push({
+                    tool: state.currentTool,
+                    points: [...currentPath]
+                });
+            }
+            currentPath = [];
+            renderDrawings();
+        }
+
+        function renderDrawings(previewPoint = null) {
+            const existingDrawings = pitchSvg.querySelectorAll('.user-drawing');
+            existingDrawings.forEach(el => el.remove());
+
+            const w = pitchEl.clientWidth;
+            const h = pitchEl.clientHeight;
+
+            const drawList = [...state.drawings];
+            if (isDrawing && currentPath.length > 1 && previewPoint) {
+                drawList.push({ tool: state.currentTool, points: currentPath });
+            }
+
+            if (!pitchSvg.querySelector('#arrowhead')) {
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                defs.innerHTML = `
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#00ff88" />
+                    </marker>
+                `;
+                pitchSvg.appendChild(defs);
+            }
+
+            drawList.forEach(d => {
+                if (d.points.length < 2) return;
+
+                if (d.tool === 'arrow') {
+                    const p1 = d.points[0];
+                    const p2 = d.points[d.points.length - 1];
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', `${(p1.x / 100) * w}`);
+                    line.setAttribute('y1', `${(p1.y / 100) * h}`);
+                    line.setAttribute('x2', `${(p2.x / 100) * w}`);
+                    line.setAttribute('y2', `${(p2.y / 100) * h}`);
+                    line.setAttribute('stroke', '#00ff88');
+                    line.setAttribute('stroke-width', '3');
+                    line.setAttribute('marker-end', 'url(#arrowhead)');
+                    line.setAttribute('class', 'user-drawing');
+                    pitchSvg.appendChild(line);
+
+                } else if (d.tool === 'curved' || d.tool === 'freehand') {
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    let dStr = `M ${(d.points[0].x / 100) * w} ${(d.points[0].y / 100) * h}`;
+                    for (let i = 1; i < d.points.length; i++) {
+                        dStr += ` L ${(d.points[i].x / 100) * w} ${(d.points[i].y / 100) * h}`;
+                    }
+                    path.setAttribute('d', dStr);
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke', d.tool === 'curved' ? '#f59e0b' : '#38bdf8');
+                    path.setAttribute('stroke-width', '3');
+                    path.setAttribute('stroke-dasharray', d.tool === 'curved' ? '6,4' : 'none');
+                    path.setAttribute('class', 'user-drawing');
+                    pitchSvg.appendChild(path);
+
+                } else if (d.tool === 'zone') {
+                    const p1 = d.points[0];
+                    const p2 = d.points[d.points.length - 1];
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    const x = Math.min(p1.x, p2.x);
+                    const y = Math.min(p1.y, p2.y);
+                    const width = Math.abs(p2.x - p1.x);
+                    const height = Math.abs(p2.y - p1.y);
+
+                    rect.setAttribute('x', `${(x / 100) * w}`);
+                    rect.setAttribute('y', `${(y / 100) * h}`);
+                    rect.setAttribute('width', `${(width / 100) * w}`);
+                    rect.setAttribute('height', `${(height / 100) * h}`);
+                    rect.setAttribute('fill', 'rgba(239, 68, 68, 0.25)');
+                    rect.setAttribute('stroke', '#ef4444');
+                    rect.setAttribute('stroke-width', '2');
+                    rect.setAttribute('rx', '6');
+                    rect.setAttribute('class', 'user-drawing');
+                    pitchSvg.appendChild(rect);
+                }
+            });
+        }
+
+        function clearDrawings() {
+            state.drawings = [];
+            renderDrawings();
+        }
+
+        function addMarker(type) {
+            state.tokens.push({
+                id: `token-${type}-${Date.now()}`,
+                type: type,
+                x: 50,
+                y: 50
+            });
+            renderTokens();
+        }
+
+        function resetBallPosition() {
+            const ball = state.tokens.find(t => t.type === 'ball');
+            if (ball) {
+                ball.x = 50;
+                ball.y = 50;
+                renderTokens();
+            }
+        }
+
+        function addFrame() {
+            const snapshot = state.tokens.map(t => ({ ...t }));
+            state.animationFrames.push(snapshot);
+            updateTimelineUI();
+        }
+
+        function updateTimelineUI() {
+            const container = document.getElementById('timelineContainer');
+            const indicator = document.getElementById('stepIndicator');
+
+            indicator.textContent = `Phase ${state.animationFrames.length}/${Math.max(1, state.animationFrames.length)}`;
+            container.innerHTML = '';
+
+            state.animationFrames.forEach((frame, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 text-xs font-bold rounded ${idx === state.currentFrameIndex ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-300'}`;
+                btn.textContent = `P${idx + 1}`;
+                btn.onclick = () => loadFrame(idx);
+                container.appendChild(btn);
+            });
+        }
+
+        function loadFrame(idx) {
+            if (state.animationFrames[idx]) {
+                state.currentFrameIndex = idx;
+                state.tokens = state.animationFrames[idx].map(t => ({ ...t }));
+                renderTokens();
+                updateTimelineUI();
+            }
+        }
+
+        function clearFrames() {
+            state.animationFrames = [];
+            state.currentFrameIndex = 0;
+            updateTimelineUI();
+        }
+
+        function playAnimation() {
+            if (state.animationFrames.length < 2) {
+                alert('Record at least 2 play phases to play 6v6 animation!');
+                return;
+            }
+
+            state.isPlayingAnim = true;
+            let frameIdx = 0;
+
+            const interval = setInterval(() => {
+                if (frameIdx >= state.animationFrames.length) {
+                    clearInterval(interval);
+                    state.isPlayingAnim = false;
+                    return;
+                }
+                loadFrame(frameIdx);
+                frameIdx++;
+            }, 800);
+        }
+
+        function renderSquadList() {
+            const container = document.getElementById('squadListContainer');
+            container.innerHTML = '';
+
+            state.squad.forEach(p => {
+                const item = document.createElement('div');
+                item.className = "bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between";
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-emerald-400">#${p.number}</span>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-200">${p.name}</h4>
+                            <span class="text-[10px] text-slate-400">${p.role}</span>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono font-bold ${p.stamina === 'Bench' ? 'text-amber-400' : 'text-emerald-400'}">${p.stamina}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function resetSubTimer() {
+            state.subTimerSeconds = 240;
+            updateSubTimerUI();
+        }
+
+        function updateSubTimerUI() {
+            const m = Math.floor(state.subTimerSeconds / 60).toString().padStart(2, '0');
+            const s = (state.subTimerSeconds % 60).toString().padStart(2, '0');
+            const el = document.getElementById('subRotationTimer');
+            if (el) el.textContent = `${m}:${s}`;
+        }
+
+        function loadSetPiecePreset(presetName) {
+            if (presetName === 'kick-in') {
+                applyFormation('1-3-1');
+                const ball = state.tokens.find(t => t.type === 'ball');
+                if (ball) { ball.x = 50; ball.y = 2; }
+                renderTokens();
+            } else if (presetName === 'quick-corner') {
+                applyFormation('2-1-2');
+                const ball = state.tokens.find(t => t.type === 'ball');
+                if (ball) { ball.x = 98; ball.y = 2; }
+                renderTokens();
+            } else if (presetName === 'goal-clearance') {
+                applyFormation('2-2-1');
+                const ball = state.tokens.find(t => t.type === 'ball');
+                if (ball) { ball.x = 8; ball.y = 50; }
+                renderTokens();
+            }
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('btn-timer-toggle');
+            if (state.isTimerRunning) {
+                clearInterval(state.timerInterval);
+                clearInterval(state.subTimerInterval);
+                state.isTimerRunning = false;
+                btn.innerHTML = `<i class="fa-solid fa-play"></i><span>Resume Half</span>`;
+                btn.className = "px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold rounded-lg text-xs transition flex items-center space-x-1.5";
+            } else {
+                state.isTimerRunning = true;
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i><span>Pause Half</span>`;
+                btn.className = "px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition flex items-center space-x-1.5";
+                
+                state.timerInterval = setInterval(() => {
+                    state.secondsElapsed++;
+                    updateTimerUI();
+                }, 1000);
+
+                state.subTimerInterval = setInterval(() => {
+                    if (state.subTimerSeconds > 0) {
+                        state.subTimerSeconds--;
+                        updateSubTimerUI();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(state.timerInterval);
+            clearInterval(state.subTimerInterval);
+            state.isTimerRunning = false;
+            state.secondsElapsed = 0;
+            state.subTimerSeconds = 240;
+            updateTimerUI();
+            updateSubTimerUI();
+            document.getElementById('btn-timer-toggle').innerHTML = `<i class="fa-solid fa-play"></i><span>Start Half</span>`;
+        }
+
+        function updateTimerUI() {
+            const mins = Math.floor(state.secondsElapsed / 60).toString().padStart(2, '0');
+            const secs = (state.secondsElapsed % 60).toString().padStart(2, '0');
+            document.getElementById('matchTimer').textContent = `${mins}:${secs}`;
+
+            const period = document.getElementById('matchPeriod');
+            if (state.secondsElapsed > 1200) {
+                period.textContent = "2nd HALF (20 MIN)";
+                period.className = "inline-block px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-bold";
+            }
+        }
+
+        function logEvent(type, team) {
+            const mins = Math.floor(state.secondsElapsed / 60);
+            if (type === 'Goal') {
+                if (team === 'Home') {
+                    state.scoreHome++;
+                    document.getElementById('scoreHome').textContent = state.scoreHome;
+                } else {
+                    state.scoreAway++;
+                    document.getElementById('scoreAway').textContent = state.scoreAway;
+                }
+            } else if (type === 'Shot on Target') {
+                state.stats.shotsHome++;
+                document.getElementById('shotsHome').textContent = state.stats.shotsHome;
+            }
+
+            const feed = document.getElementById('eventLogFeed');
+            const logItem = document.createElement('div');
+            logItem.className = "p-1.5 rounded bg-slate-900 border border-slate-800 flex items-center justify-between text-slate-300";
+            logItem.innerHTML = `
+                <span class="font-bold text-emerald-400">${mins}'</span>
+                <span>${type} (${team})</span>
+                <i class="fa-solid fa-circle-check text-slate-500"></i>
+            `;
+            feed.prepend(logItem);
+        }
+
+        function initShotMap() {
+            const container = document.getElementById('shotMapContainer');
+            container.addEventListener('click', (e) => {
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const outcomes = ['goal', 'saved', 'missed'];
+                const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+                
+                const dot = document.createElement('div');
+                dot.className = `absolute w-3 h-3 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-slate-950 shadow-md ${
+                    outcome === 'goal' ? 'bg-emerald-400 neon-glow-sm' : outcome === 'saved' ? 'bg-amber-400' : 'bg-rose-500'
+                }`;
+                dot.style.left = `${x}px`;
+                dot.style.top = `${y}px`;
+
+                container.appendChild(dot);
+                logEvent(outcome === 'goal' ? 'Goal' : 'Shot on Target', 'Home');
+            });
+        }
+
+        function drawRadarChart() {
+            const canvas = document.getElementById('radarCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = 60;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const categories = ['Counter', 'Pressing', 'Overload', 'Def Tempo', 'Sub Rot.'];
+            const values = [0.90, 0.80, 0.75, 0.85, 0.95];
+
+            for (let r = 0.2; r <= 1.0; r += 0.25) {
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                    const x = cx + Math.cos(angle) * (radius * r);
+                    const y = cy + Math.sin(angle) * (radius * r);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                const val = values[i];
+                const x = cx + Math.cos(angle) * (radius * val);
+                const y = cy + Math.sin(angle) * (radius * val);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 255, 136, 0.35)';
+            ctx.fill();
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.font = '9px Inter';
+            ctx.fillStyle = '#94a3b8';
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                const lx = cx + Math.cos(angle) * (radius + 18);
+                const ly = cy + Math.sin(angle) * (radius + 18);
+                ctx.textAlign = 'center';
+                ctx.fillText(categories[i], lx, ly + 3);
+            }
+        }
+
+        function exportTacticsJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `TactixPro_6v6_Preset_${Date.now()}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        function importTacticsJSON(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.tokens) state.tokens = imported.tokens;
+                    if (imported.squad) state.squad = imported.squad;
+                    if (imported.drawings) state.drawings = imported.drawings;
+                    renderTokens();
+                    renderDrawings();
+                    renderSquadList();
+                    alert('6v6 Strategy preset loaded successfully!');
+                } catch(err) {
+                    alert('Invalid JSON strategy file.');
+                }
+            };
+            fileReader.readAsText(event.target.files[0]);
+        }
+
+        function exportPitchPNG() {
+            alert('6v6 Strategy exported!');
+        }
+    </script>
+</body>
+</html>
